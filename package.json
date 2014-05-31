@@ -1,0 +1,8 @@
+{
+  "name": "monetize.js",
+  "version": "0.0.1",
+  "description": "MonetizeJS official client library",
+  "devDependencies": {
+    "express": "^4.3.1"
+  }
+}

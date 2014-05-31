@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>MonetizeJS sample</title>
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <div class="form-group">
+        <label for="applicationId">Application ID</label>
+        <input class="form-control" id="applicationID" placeholder="applicationID" value="537bb4a9d1af5a76178a57b1">
+        <p><b>Note:</b> Please add <span id="hostname"></span> to your list of authorized redirect URLs.</p>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="paymentsImmediate()">Get payments</button>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="redirect()">Redirect</button>
+    </div>
+</div>
+
+<script src="../monetize.js"></script>
+<script>
+    function init() {
+        monetize.init({
+            applicationID: document.getElementById('applicationID').value
+        });
+    }
+    function paymentsImmediate() {
+        init();
+        monetize.getPaymentsImmediate(function(err, payments) {
+            if(err) {
+                alert('Error: ' + JSON.stringify(err));
+            }
+            else if(payments) {
+                alert('User is logged in!\n\nTotal amount of charges: ' + payments.oneTimeCharge + '\nRunning subscription: ' + payments.subscription);
+            }
+        });
+    }
+    function redirect() {
+        init();
+        monetize.getPaymentsInteractive();
+    }
+    document.getElementById('hostname').innerHTML = window.location.href;
+
+</script>
+</body>
+</html>
