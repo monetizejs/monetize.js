@@ -1,158 +1,402 @@
+/**
+ * # monetize.js
+ *
+ * MonetizeJS official client side library.
+ *
+ */
 (function() {
-	/**
-	 * Credit: https://github.com/ded/domready
-	 * domready (c) Dustin Diaz 2014 - License MIT
-	 */
-	var domready = (function() {
 
-		var fns = [],
-			fn, f = false,
-			doc = document,
-			domContentLoaded = 'DOMContentLoaded',
-			readyState = 'readyState',
-			loaded = /^loaded|c/.test(doc[readyState]);
+	var onReady = (function() {
+		// Credit: https://github.com/ded/domready
+		var queue = [],
+			loaded = /^loaded|c/.test(document.readyState);
 
-		function flush(f) {
+		var fn, domContentLoaded = 'DOMContentLoaded';
+		document.addEventListener(domContentLoaded, fn = function() {
+			document.removeEventListener(domContentLoaded, fn, false);
 			loaded = 1;
-			while(f = fns.shift()) f()
-		}
-
-		doc.addEventListener(domContentLoaded, fn = function() {
-			doc.removeEventListener(domContentLoaded, fn, f);
-			flush();
-		}, f);
+			while((fn = queue.shift())) {
+				fn();
+			}
+		}, false);
 
 		return function(fn) {
-			loaded ? fn() : fns.push(fn);
+			loaded ? fn() : queue.push(fn);
 		};
 	})();
 
-	var monetizejsURL = 'http://localhost:3000';
-	var postMessageIframeElt;
-	var jsonpScriptElt;
-	var popupWidth = 1000;
-	var popupHeight = 700;
-	var tokenRefreshMargin = 300000; // 5 min
+	var monetizejsUrl = 'http://localhost:3000',
+		postMsgIframeElt,
+		jsonpScriptElt,
+		popupWidth = 1000,
+		popupHeight = 700,
+		timeout = 30000, // 30 sec
+		tokenRefreshMargin = 300000, // 5 min
+		iframeCb,
+		popupCb,
+		jsonpCb,
+		lastMsg,
+		timeoutError = 'Request timeout',
+		iframeTimeoutId,
+		scriptTimeoutId,
+		noResponseError = 'Please check your JS console',
+		iframeResultTimeoutId,
+		scriptResultTimeoutId;
 
-	var postMessageCbs = [];
-	var lastMessage;
-	var timeoutErrorId;
 	window.addEventListener('message', function(e) {
-		if(e.origin == monetizejsURL) {
-			clearTimeout(timeoutErrorId);
-			lastMessage = e.data;
-			if(lastMessage.expiresIn) {
-				lastMessage.refreshDate = Date.now() + lastMessage.expiresIn - tokenRefreshMargin;
+		if(e.origin == monetizejsUrl) {
+			lastMsg = e.data;
+			if(lastMsg.expiresIn) {
+				lastMsg.refreshDate = Date.now() + lastMsg.expiresIn - tokenRefreshMargin;
 			}
-			while(cb = postMessageCbs.shift()) cb(lastMessage);
+			if(lastMsg.popup) {
+				popupCb && popupCb(lastMsg);
+			}
+			else {
+				clearTimeout(iframeResultTimeoutId);
+				clearTimeout(iframeTimeoutId);
+				iframeCb && iframeCb(lastMsg);
+			}
 		}
 	});
-	function getPostMessageIframeElt() {
-		if(postMessageIframeElt) {
-			return postMessageIframeElt;
+
+	function getPostMsgIframeElt() {
+		if(postMsgIframeElt) {
+			return postMsgIframeElt;
 		}
-		postMessageIframeElt = document.createElement("iframe");
-		postMessageIframeElt.setAttribute("style", "width: 1px; height: 1px; position: absolute; top: -100px;");
-		document.body.appendChild(postMessageIframeElt);
-		postMessageIframeElt.onload = function() {
-			timeoutErrorId = setTimeout(function() {
-				while(cb = postMessageCbs.shift()) cb({
-					error: 'Unknown'
+		postMsgIframeElt = document.createElement("iframe");
+		postMsgIframeElt.setAttribute("style", "width: 1px; height: 1px; position: absolute; top: -100px;");
+		document.body.appendChild(postMsgIframeElt);
+		postMsgIframeElt.onload = function() {
+			iframeResultTimeoutId = setTimeout(function() {
+				// After iframe is loaded, if no msg is received
+				iframeCb && iframeCb({
+					error: noResponseError
 				});
 			}, 200);
 		};
-		return postMessageIframeElt;
+		return postMsgIframeElt;
 	}
 
-	function postMessageIframe(cb) {
-		postMessageCbs.push(cb);
-		domready(function() {
-			getPostMessageIframeElt().setAttribute('src',
-					monetizejsURL +
-					'/authorize?immediate=true&response_type=token&client_id=' + encodeURIComponent(options.applicationID) +
-					'&redirect_uri=' + encodeURIComponent(window.location.href) +
-					'&' + Date.now());
+	function formatUrl(path, qs) {
+		var url = monetizejsUrl + path;
+		qs = qs && Object.keys(qs).map(function(key) {
+			return key + '=' + encodeURIComponent(qs[key]);
+		}).join('&');
+		return qs ? url + '?' + qs : url;
+	}
+
+	function postMsgIframe(options, fn) {
+		iframeCb = function(msg) {
+			iframeCb = undefined;
+			fn(msg);
+		};
+		var qs = {
+			immediate: true,
+			response_type: 'token',
+			client_id: options.applicationID,
+			redirect_uri: options.redirectURL
+		};
+		onReady(function() {
+			getPostMsgIframeElt().setAttribute('src', formatUrl('/authorize', qs));
+			clearTimeout(iframeTimeoutId);
+			iframeTimeoutId = setTimeout(function() {
+				iframeCb && iframeCb({
+					error: timeoutError
+				});
+			}, timeout);
 		});
 	}
 
-	var jsonpCbs = [];
+	function popupWindow(options, fn) {
+		popupCb = function(msg) {
+			popupCb = undefined;
+			fn(msg);
+		};
+		var qs = {
+			popup: true,
+			response_type: 'token',
+			client_id: options.applicationID,
+			redirect_uri: options.redirectURL
+		};
+		if(options.pricingOptions && options.pricingOptions.length) {
+			qs.pricing_options = options.pricingOptions.join(',');
+		}
+		if(options.summary) {
+			qs.summary = true;
+		}
+		var windowFeatures = {
+			toolbar: 'no',
+			location: 'no',
+			directories: 'no',
+			status: 'no',
+			menubar: 'no',
+			scrollbars: 'no',
+			resizable: 'no',
+			copyhistory: 'no',
+			width: popupWidth,
+			height: popupHeight,
+			left: (screen.width - popupWidth) / 2,
+			top: (screen.height - popupHeight) / 2
+		};
+		window.open(formatUrl('/authorize', qs), undefined,
+			Object.keys(windowFeatures).map(function(key) {
+				return key + '=' + windowFeatures[key];
+			}).join(',')
+		);
+	}
+
 	window._monetizeJsonpCallback = function(res) {
-		while(cb = jsonpCbs.shift()) cb(res);
+		clearTimeout(scriptResultTimeoutId);
+		clearTimeout(scriptTimeoutId);
+		jsonpCb && jsonpCb(res);
 	};
+
 	function getJsonpScriptElt() {
 		if(jsonpScriptElt) {
 			document.head.removeChild(jsonpScriptElt);
 		}
 		jsonpScriptElt = document.createElement("script");
+		jsonpScriptElt.onload = function() {
+			scriptResultTimeoutId = setTimeout(function() {
+				// After script is loaded, if no response is received
+				jsonpCb && jsonpCb({
+					error: noResponseError
+				});
+			}, 200);
+		};
+
 		document.head.appendChild(jsonpScriptElt);
 		return jsonpScriptElt;
 	}
 
-	function getPaymentsJsonp(cb) {
-		jsonpCbs.push(cb);
-		domready(function() {
+	function getPaymentsJsonp(fn) {
+		jsonpCb = function(msg) {
+			jsonpCb = undefined;
+			fn(msg);
+		};
+		onReady(function() {
 			getJsonpScriptElt().setAttribute('src',
-					monetizejsURL +
-					'/api/payments?access_token=' + lastMessage.token +
+					monetizejsUrl +
+					'/api/payments?access_token=' + lastMsg.token +
 					'&callback=_monetizeJsonpCallback&' + Date.now());
+			clearTimeout(scriptTimeoutId);
+			scriptTimeoutId = setTimeout(function() {
+				jsonpCb && jsonpCb({
+					error: timeoutError
+				});
+			}, timeout);
 		});
 	}
 
-	var monetize = {};
-	var options = {};
-
-	monetize.init = function(params) {
-		options = params || {};
-	};
-
-	monetize.getTokenImmediate = function(cb) {
-		if(lastMessage && lastMessage.token && lastMessage.refreshDate > Date.now()) {
-			return cb(undefined, lastMessage.token);
+	function redirect(options) {
+		var qs = {
+			redirect: true,
+			response_type: 'token',
+			client_id: options.applicationID,
+			redirect_uri: options.redirectURL
+		};
+		if(options.pricingOptions && options.pricingOptions.length) {
+			qs.pricing_options = options.pricingOptions.join(',');
 		}
-		postMessageIframe(function(message) {
-			cb(message.error, message.token);
-		});
+		if(options.summary) {
+			qs.summary = true;
+		}
+		window.location = formatUrl('/authorize', qs);
+	}
+
+	function extend(obj, source) {
+		for(var prop in source) {
+			obj[prop] = source[prop];
+		}
+	}
+
+	var defaultOptions = {
+		redirectURL: window.location.href
 	};
 
-	monetize.getPaymentsImmediate = function(cb) {
-		if(lastMessage && lastMessage.token && lastMessage.refreshDate > Date.now()) {
-			return getPaymentsJsonp(function(payments) {
-				cb(undefined, payments);
+	/**
+	 * Create and initialize a MonetizeJS object.
+	 *
+	 * @example
+	 *
+	 * var monetize = MonetizeJS(options);
+	 *
+	 * @param {Object} options optional set of default options.
+	 *
+	 */
+	function MonetizeJS(options) {
+		var initOptions = {};
+		extend(initOptions, defaultOptions);
+		extend(initOptions, options || {});
+
+		function paramSanitizer(fn) {
+			return function(options, cb) {
+				if(typeof options === 'function') {
+					cb = options;
+					options = {};
+				}
+				var extendedOptions = {};
+				extend(extendedOptions, initOptions);
+				extend(extendedOptions, options || {});
+				fn(extendedOptions, cb);
+			};
+		}
+
+		var monetize = {};
+
+		/**
+		 * Attempt to get an access token without a redirection.
+		 *
+		 * @example
+		 *
+		 * monetize.getTokenImmediate(options, function(err, token) {
+         *     if(err) {
+		 *         console.error(err);
+		 *     }
+		 *     else if(token) {
+		 *         console.log(token);
+		 *     }
+		 * });
+		 *
+		 * @param {Object} options optional set of options overriding the init options:
+		 *
+		 *      - **applicationID**: *String*, the application ID.
+		 *
+		 * @param {Function} cb a callback to be called with the following parameters:
+		 *
+		 *      - **err**: *Error*, in case of failure.
+		 *
+		 *      - **token**: *String*, the access token.
+		 */
+		monetize.getTokenImmediate = paramSanitizer(function(options, cb) {
+			if(lastMsg && lastMsg.token && lastMsg.refreshDate > Date.now()) {
+				return cb(undefined, lastMsg.token);
+			}
+			postMsgIframe(options, function(msg) {
+				cb(msg.error, msg.token);
 			});
-		}
-		postMessageIframe(function(message) {
-			cb(message.error, message.payments);
 		});
-	};
 
-	function redirect() {
-		var redirectURL = encodeURIComponent(options.redirectURL || window.location.href);
-		window.location = monetizejsURL + '/authorize?response_type=token&client_id=' + encodeURIComponent(options.applicationID) + '&redirect_uri=' + redirectURL;
+		/**
+		 * Attempt to get user's payments without a redirection.
+		 *
+		 * @example
+		 *
+		 * monetize.getPaymentsImmediate({}, function(err, payments) {
+         *     if(err) {
+		 *         console.error(err);
+		 *     }
+		 *     else if(token) {
+		 *         console.log(payments.currentCharge);
+		 *         console.log(payments.currentSubscription);
+		 *     }
+		 * });
+		 *
+		 * @param {Object} options same as `getTokenImmediate`
+		 *
+		 * @param {Function} cb a callback to be called with the following parameters:
+		 *
+		 *      - **err**: *Error*, in case of failure
+		 *
+		 *      - **payments**: *Object*, the payment object.
+		 *
+		 *      > This object contains the fields `currentCharge` and `currentSubscription` that you have to validate.
+		 */
+		monetize.getPaymentsImmediate = paramSanitizer(function(options, cb) {
+			if(lastMsg && lastMsg.token && lastMsg.refreshDate > Date.now()) {
+				return getPaymentsJsonp(function(payments) {
+					cb(undefined, payments);
+				});
+			}
+			postMsgIframe(options, function(msg) {
+				cb(msg.error, msg.payments);
+			});
+		});
+
+		/**
+		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+		 *
+		 * @example
+		 *
+		 * monetize.getTokenInteractive(options, function(err, token) {
+         *     if(err) {
+		 *         console.error(err);
+		 *     }
+		 *     else if(token) {
+		 *         console.log(token);
+		 *     }
+		 * });
+		 *
+		 * @param {Object} options optional set of options overriding the init options:
+		 *
+		 *      - **applicationID**: *String*, the application ID.
+		 *
+		 *      - **redirectURL**: *String*, in case of full page redirection, MonetizeJS will redirect the user to that URL.
+		 *
+		 *      > If redirect URL isn't provided, user will be redirected to the current page.
+		 *
+		 *      - **summary**: *Boolean*, forces the whole list of pricing options to be shown to the user.
+		 *
+		 *      > This option lets users review their current charge/subscription and manage their payments for your app.
+		 *
+		 *      - **pricingOptions**: *String*, a comma separated list of pricing option aliases.
+		 *
+		 *      > Unless "summary" is enabled, the user interface will be limited to the specified pricing options.
+		 *      If no pricing option is specified or user already has one of the specified pricing options, only login will be performed.
+		 *
+		 * @param {Function} cb same as `getTokenImmediate`.
+		 *
+		 * If the callback is provided, the redirection will be performed in a popup window.
+		 * If no callback is provided, a full page redirection will be performed and you will have to call getTokenImmediate once redirected back to your page.
+		 */
+		monetize.getTokenInteractive = paramSanitizer(function(options, cb) {
+			if(!cb) {
+				return redirect(options);
+			}
+			popupWindow(options, function(msg) {
+				cb(msg.error, msg.token);
+			});
+		});
+
+		/**
+		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+		 *
+		 * @example
+		 *
+		 * monetize.getTokenInteractive(options, function(err, token) {
+         *     if(err) {
+		 *         console.error(err);
+		 *     }
+		 *     else if(token) {
+		 *         console.log(token);
+		 *     }
+		 * });
+		 *
+		 * @param {Object} options same as `getTokenInteractive`.
+		 *
+		 * @param {Function} cb same as `getPaymentsImmediate`.
+		 *
+		 * If the callback is provided, the redirection will be performed in a popup window.
+		 * If no callback is provided, a full page redirection will be performed and you will have to call getPaymentsImmediate once redirected back to your page.
+		 */
+		monetize.getPaymentsInteractive = paramSanitizer(function(options, cb) {
+			if(!cb) {
+				return redirect(options);
+			}
+			popupWindow(options, function(msg) {
+				cb(msg.error, msg.payments);
+			});
+		});
+
+		return monetize;
 	}
 
-	monetize.getTokenInteractive = function(cb) {
-		if(!cb) {
-			return redirect();
-		}
-		postMessageCbs.push(function(message) {
-			cb(message.error, message.token);
+	window.MonetizeJS = MonetizeJS;
+
+	if(typeof define === "function" && define.amd) {
+		define("MonetizeJS", [], function() {
+			return MonetizeJS;
 		});
-		var url = monetizejsURL + '/authorize?popup=true&response_type=token&client_id=' + encodeURIComponent(options.applicationID) + '&redirect_uri=' + encodeURIComponent(window.location.href);
-		var left = (screen.width - popupWidth) / 2;
-		var top = (screen.height - popupHeight) / 2;
-		return window.open(url, undefined,
-				'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=' + popupWidth +
-				', height=' + popupHeight +
-				', top=' + top +
-				', left=' + left
-		);
-	};
-
-	monetize.getPaymentsInteractive = function(cb) {
-		if(!cb) {
-			return redirect();
-		}
-	};
-
-	window.monetize = monetize;
+	}
 })();

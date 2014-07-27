@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "description": "MonetizeJS official client library",
   "devDependencies": {
-    "express": "^4.3.1"
+    "express": "^4.3.1",
+    "gulp": "^3.8.6",
+    "dox": "^0.4.6"
   }
 }

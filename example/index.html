@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>MonetizeJS sample</title>
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <div class="form-group">
+        <label for="applicationId">Application ID</label>
+        <input class="form-control" id="applicationID" placeholder="applicationID" value="EKM403QPQaK1ADIP">
+        <p>You have to add <span class="url"></span> to your list of authorized redirect URLs.</p>
+    </div>
+    <br>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="paymentsImmediate()">GetPaymentsImmediate</button>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="tokenImmediate()">GetTokenImmediate</button>
+    </div>
+    <br>
+    <div class="form-group">
+        <label for="pricingOptions">Pricing options</label>
+        <input class="form-control" id="pricingOptions" placeholder="aliases">
+        <p>Add here a list of aliases (comma separated).</p>
+    </div>
+    <div class="checkbox">
+        <label>
+            <input id="summary" type="checkbox"> Payment summary
+        </label>
+    </div>
+    <br>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="paymentsRedirect()">GetPaymentsInteractive (redirect)</button>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="paymentsPopup()">GetPaymentsInteractive (popup)</button>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-default" onclick="tokenPopup()">GetTokenInteractive (popup)</button>
+    </div>
+</div>
+
+<script src="../monetize.js"></script>
+<script>
+    var monetize;
+    function init() {
+        monetize = MonetizeJS({
+            applicationID: document.getElementById('applicationID').value,
+            pricingOptions: document.getElementById('pricingOptions').value.split(','),
+            summary: document.getElementById('summary').checked
+        });
+    }
+    function paymentsCb(err, payments) {
+        if(err) {
+            alert('Error: ' + JSON.stringify(err));
+        }
+        else if(payments) {
+            alert('User is logged in!\n\nCurrent charge: ' + JSON.stringify(payments.currentCharge) + '\nCurrent subscription: ' + JSON.stringify(payments.currentSubscription));
+        }
+    }
+    function paymentsImmediate() {
+        init();
+        monetize.getPaymentsImmediate(paymentsCb);
+    }
+    function paymentsRedirect() {
+        init();
+        monetize.getPaymentsInteractive();
+    }
+    function paymentsPopup() {
+        init();
+        monetize.getPaymentsInteractive(paymentsCb);
+    }
+    function tokenCb(err, token) {
+        if(err) {
+            alert('Error: ' + JSON.stringify(err));
+        }
+        else if(token) {
+            alert('User is logged in!\n\nToken: ' + token);
+        }
+    }
+    function tokenImmediate() {
+        init();
+        monetize.getTokenImmediate(tokenCb);
+    }
+    function tokenPopup() {
+        init();
+        monetize.getTokenInteractive(tokenCb);
+    }
+    var url = window.location.hash ? window.location.href.slice(0, -window.location.hash.length) : window.location.href;
+    document.querySelector('.url').innerHTML = url;
+
+</script>
+</body>
+</html>
