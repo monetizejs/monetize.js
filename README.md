@@ -107,7 +107,7 @@ monetize.getTokenInteractive(options, function(err, token) {
 
      > This option lets users review their current charge/subscription and manage their payments for your app.
 
-     - **pricingOptions**: *String*, a comma separated list of pricing option aliases.
+     - **pricingOptions**: *Array*, a list of pricing option aliases.
 
      > Unless "summary" is enabled, the user interface will be limited to the specified pricing options.
      If no pricing option is specified or user already has one of the specified pricing options, only login will be performed.

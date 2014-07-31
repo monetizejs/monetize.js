@@ -48,7 +48,7 @@
     function init() {
         monetize = MonetizeJS({
             applicationID: document.getElementById('applicationID').value,
-            pricingOptions: document.getElementById('pricingOptions').value.split(','),
+            pricingOptions: document.getElementById('pricingOptions').value,
             summary: document.getElementById('summary').checked
         });
     }

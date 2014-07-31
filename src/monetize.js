@@ -111,6 +111,15 @@
 		});
 	}
 
+	function setOptions(qs, options) {
+		if(options.pricingOptions && options.pricingOptions.length) {
+			qs.pricing_options = options.pricingOptions.join ? options.pricingOptions.join(',') : options.pricingOptions;
+		}
+		if(options.summary) {
+			qs.summary = true;
+		}
+	}
+
 	function popupWindow(options, fn) {
 		popupCb = function(msg) {
 			popupCb = undefined;
@@ -122,12 +131,7 @@
 			client_id: options.applicationID,
 			redirect_uri: options.redirectURL
 		};
-		if(options.pricingOptions && options.pricingOptions.length) {
-			qs.pricing_options = options.pricingOptions.join(',');
-		}
-		if(options.summary) {
-			qs.summary = true;
-		}
+		setOptions(qs, options);
 		var windowFeatures = {
 			toolbar: 'no',
 			location: 'no',
@@ -198,12 +202,7 @@
 			client_id: options.applicationID,
 			redirect_uri: options.redirectURL
 		};
-		if(options.pricingOptions && options.pricingOptions.length) {
-			qs.pricing_options = options.pricingOptions.join(',');
-		}
-		if(options.summary) {
-			qs.summary = true;
-		}
+		setOptions(qs, options);
 		window.location = formatUrl('/authorize', qs);
 	}
 
@@ -342,7 +341,7 @@
 		 *
 		 *      > This option lets users review their current charge/subscription and manage their payments for your app.
 		 *
-		 *      - **pricingOptions**: *String*, a comma separated list of pricing option aliases.
+		 *      - **pricingOptions**: *Array*, a list of pricing option aliases.
 		 *
 		 *      > Unless "summary" is enabled, the user interface will be limited to the specified pricing options.
 		 *      If no pricing option is specified or user already has one of the specified pricing options, only login will be performed.
