@@ -11,6 +11,30 @@
     "bluebird": "^2.2.2",
     "knox": "^0.9.0",
     "gulp-util": "^3.0.0",
-    "gulp-git": "^0.4.3"
-  }
+    "gulp-git": "^0.4.3",
+    "gulp-bump": "^0.1.10"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "main": "src/monetize.js",
+  "directories": {
+    "example": "example"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/monetizejs/monetize.js.git"
+  },
+  "keywords": [
+    "MonetizeJS",
+    "monetizejs",
+    "monetize.js",
+    "monetize"
+  ],
+  "author": "MonetizeJS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/monetizejs/monetize.js/issues"
+  },
+  "homepage": "https://github.com/monetizejs/monetize.js"
 }
