@@ -3,16 +3,32 @@ var fs = require('fs');
 var dox = require('./node_modules/dox/lib/dox');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
+var Promise = require('bluebird');
+var knox = require('knox');
+var zlib = require('zlib');
+var util = require('gulp-util');
+var bump = require('gulp-bump');
+var git = require('gulp-git');
+var fs = require('fs');
+var path = require('path');
 
-gulp.task('default', function() {
-	return gulp.src('monetize.js')
-		.pipe(rename({suffix: '.min'}))
+var s3Client = knox.createClient({
+	key: process.env.AWS_ACCESS_KEY_ID,
+	secret: process.env.AWS_SECRET_KEY,
+	bucket: 'dock5-public'
+});
+var putBuffer = Promise.promisify(s3Client.putBuffer, s3Client);
+
+
+gulp.task('build', function() {
+	return gulp.src('src/monetize.js')
 		.pipe(uglify())
-		.pipe(gulp.dest('.'));
+		.pipe(rename({suffix: '.min'}))
+		.pipe(gulp.dest('dist/'));
 });
 
 gulp.task('readme', function() {
-	var content = fs.readFileSync(__dirname + '/monetize.js', {
+	var content = fs.readFileSync(__dirname + '/src/monetize.js', {
 		encoding: 'utf8'
 	});
 	var result = '';
@@ -45,100 +61,82 @@ gulp.task('readme', function() {
 			});
 		}
 	});
-	fs.writeFileSync(__dirname + '/Readme.md', result);
+	var license = fs.readFileSync(__dirname + '/LICENSE', {
+		encoding: 'utf8'
+	});
+	result += '## License\n\n' + license;
+	fs.writeFileSync(__dirname + '/README.md', result);
 });
 
-var Promise = require('bluebird');
-var knox = require('knox');
-var zlib = require('zlib');
-var util = require('gulp-util');
-var git = require('gulp-git');
-var fs = require('fs');
-
-var s3Client = knox.createClient({
-	key: process.env.AWS_ACCESS_KEY_ID,
-	secret: process.env.AWS_SECRET_KEY,
-	bucket: 'dock5-public'
-});
+gulp.task('default', [
+	'build',
+	'readme'
+]);
 
 function bumpTask(importance) {
 	return function() {
-		return gulp.src(['./package.json', './bower.json'])
-			.pipe(plugins.bump({type: importance}))
+		return gulp.src([
+			'./package.json',
+			'./bower.json'
+		])
+			.pipe(bump({type: importance}))
 			.pipe(gulp.dest('./'))
-			.pipe(plugins.git.commit('bumps package version'));
+			.pipe(git.commit('bumps package version'));
 	};
 }
-
-
+gulp.task('bump', bumpTask('patch'));
 gulp.task('bump-patch', bumpTask('patch'));
-gulp.task('tag', function() {
-	var packageJson = JSON.parse(fs.readFileSync(__dirname + '/../package.json', {
+gulp.task('bump-minor', bumpTask('minor'));
+gulp.task('bump-major', bumpTask('major'));
+
+function getVersion() {
+	return JSON.parse(fs.readFileSync(__dirname + '/package.json', {
 		encoding: 'utf8'
-	}));
-	var tag = 'v' + packageJson.version;
-	util.log('Tagging as: ' + plugins.util.colors.cyan(tag));
-	git.tag(tag, 'Version ' + packageJson.version);
+	})).version;
+}
+
+gulp.task('tag', function() {
+	var tag = 'v' + getVersion();
+	util.log('Tagging as: ' + util.colors.cyan(tag));
+	git.tag(tag, 'Version ' + getVersion());
 	git.push('origin', 'master', { args: ' --tags' }).end();
 });
 
 
-gulp.task('deploy-assets', function() {
-	return glob('app-min/**', {
-		mark: true,
-		cwd: __dirname + '/../public'
-	})
-		.then(function(files) {
-			return Promise.all(files.map(function(file) {
-				if(file.slice(-1) == '/') {
-					return;
-				}
-				var filePath = __dirname + '/../public/' + file;
-				return magicDetectFile(filePath)
-					.then(function(contentType) {
-						return new Promise(function(resolve, reject) {
-							var stream = fs.createReadStream(__dirname + '/../public/' + file);
-							var contentEncoding;
-
-							function zip() {
-								var gzip = zlib.createGzip();
-								stream = stream.pipe(gzip);
-								contentEncoding = 'gzip';
-							}
-
-							if(file.slice(-3) == '.js') {
-								zip();
-								contentType = 'application/javascript';
-							}
-							if(file.slice(-4) == '.css') {
-								zip();
-								contentType = 'text/css';
-							}
-							var bufs = [];
-							stream.on('data', function(d) {
-								bufs.push(d);
+gulp.task('deploy', function() {
+	return Promise.all([
+		'src/monetize.js',
+		'dist/monetize.min.js'
+	].map(function(file) {
+			return new Promise(function(resolve, reject) {
+				var stream = fs.createReadStream(path.join(__dirname, file));
+				var gzip = zlib.createGzip();
+				stream = stream.pipe(gzip);
+				var bufs = [];
+				stream.on('data', function(d) {
+					bufs.push(d);
+				});
+				stream.on('error', function(err) {
+					reject(err);
+				});
+				stream.on('end', function() {
+					var contentLength = bufs.reduce(function(sum, buf) {
+						return sum + buf.length;
+					}, 0);
+					Promise.all([
+						'js/latest',
+							'js/' + getVersion()
+					].map(function(dest) {
+							return putBuffer(Buffer.concat(bufs), path.join(dest, path.basename(file)), {
+								'x-amz-acl': 'public-read',
+								'Content-Length': contentLength,
+								'Content-Type': 'application/javascript',
+								'Content-Encoding': 'gzip',
+								'Cache-Control': dest == 'js/latest' ? 'max-age=86400' : 'max-age=31536000'
 							});
-							stream.on('error', function(err) {
-								reject(err);
-							});
-							stream.on('end', function() {
-								var contentLength = bufs.reduce(function(sum, buf) {
-									return sum + buf.length;
-								}, 0);
-								var headers = {
-									'x-amz-acl': 'public-read',
-									'Content-Length': contentLength,
-									'Content-Type': contentType,
-									'Cache-Control': 'max-age=3153600'
-								};
-								contentEncoding && (headers['Content-Encoding'] = contentEncoding);
-								s3Client.putBuffer(Buffer.concat(bufs), file, headers, function(err, res) {
-									res.pipe(process.stdout)
-									err ? reject(err) : resolve(res);
-								});
-							});
-						});
-					});
-			}));
-		});
+						}))
+						.then(resolve, reject);
+				});
+			});
+		}));
 });
