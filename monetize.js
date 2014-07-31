@@ -1,7 +1,7 @@
 /**
  * # monetize.js
  *
- * MonetizeJS official client side library.
+ * MonetizeJS official client-side library.
  *
  */
 (function() {
@@ -39,9 +39,7 @@
 		timeoutError = 'Request timeout',
 		iframeTimeoutId,
 		scriptTimeoutId,
-		noResponseError = 'Please check your JS console',
-		iframeResultTimeoutId,
-		scriptResultTimeoutId;
+		noResponseError = 'Please check your JS console';
 
 	window.addEventListener('message', function(e) {
 		if(e.origin == monetizejsUrl) {
@@ -53,7 +51,6 @@
 				popupCb && popupCb(lastMsg);
 			}
 			else {
-				clearTimeout(iframeResultTimeoutId);
 				clearTimeout(iframeTimeoutId);
 				iframeCb && iframeCb(lastMsg);
 			}
@@ -67,19 +64,17 @@
 		postMsgIframeElt = document.createElement("iframe");
 		postMsgIframeElt.setAttribute("style", "width: 1px; height: 1px; position: absolute; top: -100px;");
 		document.body.appendChild(postMsgIframeElt);
-		postMsgIframeElt.onload = function() {
-			iframeResultTimeoutId = setTimeout(function() {
-				// After iframe is loaded, if no msg is received
-				iframeCb && iframeCb({
-					error: noResponseError
-				});
-			}, 200);
+		postMsgIframeElt.onerror = function() {
+			iframeCb && iframeCb({
+				error: noResponseError
+			});
 		};
 		return postMsgIframeElt;
 	}
 
 	function formatUrl(path, qs) {
 		var url = monetizejsUrl + path;
+		qs.q = Date.now(); // Prevent caching
 		qs = qs && Object.keys(qs).map(function(key) {
 			return key + '=' + encodeURIComponent(qs[key]);
 		}).join('&');
@@ -98,7 +93,7 @@
 			redirect_uri: options.redirectURL
 		};
 		onReady(function() {
-			getPostMsgIframeElt().setAttribute('src', formatUrl('/authorize', qs));
+			getPostMsgIframeElt().src = formatUrl('/authorize', qs);
 			clearTimeout(iframeTimeoutId);
 			iframeTimeoutId = setTimeout(function() {
 				iframeCb && iframeCb({
@@ -147,26 +142,24 @@
 	}
 
 	window._monetizeJsonpCallback = function(res) {
-		clearTimeout(scriptResultTimeoutId);
 		clearTimeout(scriptTimeoutId);
-		jsonpCb && jsonpCb(res);
+		jsonpCb && jsonpCb({
+			payments: res
+		});
 	};
 
 	function getJsonpScriptElt() {
 		if(jsonpScriptElt) {
-			document.head.removeChild(jsonpScriptElt);
+			document.body.removeChild(jsonpScriptElt);
 		}
 		jsonpScriptElt = document.createElement("script");
-		jsonpScriptElt.onload = function() {
-			scriptResultTimeoutId = setTimeout(function() {
-				// After script is loaded, if no response is received
-				jsonpCb && jsonpCb({
-					error: noResponseError
-				});
-			}, 200);
+		jsonpScriptElt.onerror = function() {
+			jsonpCb && jsonpCb({
+				error: noResponseError
+			});
 		};
 
-		document.head.appendChild(jsonpScriptElt);
+		document.body.appendChild(jsonpScriptElt);
 		return jsonpScriptElt;
 	}
 
@@ -175,11 +168,12 @@
 			jsonpCb = undefined;
 			fn(msg);
 		};
+		var qs = {
+			access_token: lastMsg.token,
+			callback: '_monetizeJsonpCallback'
+		};
 		onReady(function() {
-			getJsonpScriptElt().setAttribute('src',
-					monetizejsUrl +
-					'/api/payments?access_token=' + lastMsg.token +
-					'&callback=_monetizeJsonpCallback&' + Date.now());
+			getJsonpScriptElt().src = formatUrl('/api/payments', qs);
 			clearTimeout(scriptTimeoutId);
 			scriptTimeoutId = setTimeout(function() {
 				jsonpCb && jsonpCb({
@@ -283,7 +277,7 @@
 		 *
 		 * @example
 		 *
-		 * monetize.getPaymentsImmediate({}, function(err, payments) {
+		 * monetize.getPaymentsImmediate(options, function(err, payments) {
          *     if(err) {
 		 *         console.error(err);
 		 *     }
@@ -305,8 +299,8 @@
 		 */
 		monetize.getPaymentsImmediate = paramSanitizer(function(options, cb) {
 			if(lastMsg && lastMsg.token && lastMsg.refreshDate > Date.now()) {
-				return getPaymentsJsonp(function(payments) {
-					cb(undefined, payments);
+				return getPaymentsJsonp(function(msg) {
+					cb(msg.error, msg.payments);
 				});
 			}
 			postMsgIframe(options, function(msg) {
@@ -347,8 +341,8 @@
 		 *
 		 * @param {Function} cb same as `getTokenImmediate`.
 		 *
-		 * If the callback is provided, the redirection will be performed in a popup window.
-		 * If no callback is provided, a full page redirection will be performed and you will have to call getTokenImmediate once redirected back to your page.
+		 *      > If the callback is provided, the redirection will be performed in a popup window.
+		 *      > If no callback is provided, a full page redirection will be performed and you will have to call `getTokenImmediate` once redirected back to your page.
 		 */
 		monetize.getTokenInteractive = paramSanitizer(function(options, cb) {
 			if(!cb) {
@@ -377,8 +371,8 @@
 		 *
 		 * @param {Function} cb same as `getPaymentsImmediate`.
 		 *
-		 * If the callback is provided, the redirection will be performed in a popup window.
-		 * If no callback is provided, a full page redirection will be performed and you will have to call getPaymentsImmediate once redirected back to your page.
+		 *      > If the callback is provided, the redirection will be performed in a popup window.
+		 *      > If no callback is provided, a full page redirection will be performed and you will have to call `getPaymentsImmediate` once redirected back to your page.
 		 */
 		monetize.getPaymentsInteractive = paramSanitizer(function(options, cb) {
 			if(!cb) {

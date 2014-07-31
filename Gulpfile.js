@@ -2,7 +2,7 @@ var gulp = require('gulp');
 var fs = require('fs');
 var dox = require('./node_modules/dox/lib/dox');
 
-gulp.task('default', function() {
+gulp.task('readme', function() {
 	var content = fs.readFileSync(__dirname + '/monetize.js', {
 		encoding: 'utf8'
 	});

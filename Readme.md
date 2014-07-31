@@ -54,7 +54,7 @@ Attempt to get user's payments without a redirection.
 #### Example:
 
 ```js
-monetize.getPaymentsImmediate({}, function(err, payments) {
+monetize.getPaymentsImmediate(options, function(err, payments) {
     if(err) {
         console.error(err);
     }
@@ -114,8 +114,8 @@ monetize.getTokenInteractive(options, function(err, token) {
 
 
 - **cb**: *Function*, same as `getTokenImmediate`. 
-If the callback is provided, the redirection will be performed in a popup window.
-If no callback is provided, a full page redirection will be performed and you will have to call getTokenImmediate once redirected back to your page.
+     > If the callback is provided, the redirection will be performed in a popup window.
+     > If no callback is provided, a full page redirection will be performed and you will have to call `getTokenImmediate` once redirected back to your page.
 
 ## monetize.getPaymentsInteractive()
 
@@ -140,6 +140,6 @@ monetize.getTokenInteractive(options, function(err, token) {
 - **options**: *Object*, same as `getTokenInteractive`. 
 
 - **cb**: *Function*, same as `getPaymentsImmediate`. 
-If the callback is provided, the redirection will be performed in a popup window.
-If no callback is provided, a full page redirection will be performed and you will have to call getPaymentsImmediate once redirected back to your page.
+     > If the callback is provided, the redirection will be performed in a popup window.
+     > If no callback is provided, a full page redirection will be performed and you will have to call `getPaymentsImmediate` once redirected back to your page.
 
