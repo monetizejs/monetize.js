@@ -1,7 +1,7 @@
 {
-  "name": "monetize.js",
-  "version": "0.0.1",
-  "description": "MonetizeJS official client library",
+  "name": "monetizejs",
+  "version": "0.1.0",
+  "description": "MonetizeJS official client-side library",
   "devDependencies": {
     "express": "^4.3.1",
     "gulp": "^3.8.6",
