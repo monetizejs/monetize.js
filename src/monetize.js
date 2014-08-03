@@ -3,6 +3,18 @@
  *
  * MonetizeJS official client-side library.
  *
+ * #### Import from CDN
+ *
+ * ```html
+ * <script src="//cdn.monetizejs.com/api/js/latest/monetize.min.js"></script>
+ * ```
+ *
+ * #### Install from bower
+ *
+ * ```bash
+ * bower install monetizejs
+ * ```
+ *
  */
 (function() {
 
@@ -25,7 +37,7 @@
 		};
 	})();
 
-	var monetizejsUrl = 'http://localhost:3000',
+	var monetizejsUrl = 'https://monetizejs.com',
 		postMsgIframeElt,
 		jsonpScriptElt,
 		popupWidth = 1000,
@@ -72,10 +84,12 @@
 			return key + ':' + iframeStyle[key];
 		}).join(';'));
 		document.body.appendChild(postMsgIframeElt);
-		postMsgIframeElt.onerror = function() {
-			iframeCb && iframeCb({
-				error: noResponseError
-			});
+		postMsgIframeElt.onerror = postMsgIframeElt.onload = function() {
+			setTimeout(function() {
+				iframeCb && iframeCb({
+					error: noResponseError
+				});
+			}, 10);
 		};
 		return postMsgIframeElt;
 	}
@@ -153,7 +167,13 @@
 		);
 	}
 
-	window._monetizeJsonpCallback = function(res) {
+	window._monetizeJsonpCallback = function jsonpCallback(res) {
+		// Check that callback is not proxied
+		if(window._monetizeJsonpCallback !== jsonpCallback) {
+			return jsonpCb && jsonpCb({
+				error: 'Callback replaced!'
+			});
+		}
 		clearTimeout(scriptTimeoutId);
 		jsonpCb && jsonpCb({
 			payments: res
@@ -165,10 +185,12 @@
 			document.body.removeChild(jsonpScriptElt);
 		}
 		jsonpScriptElt = document.createElement("script");
-		jsonpScriptElt.onerror = function() {
-			jsonpCb && jsonpCb({
-				error: noResponseError
-			});
+		jsonpScriptElt.onerror = jsonpScriptElt.onload = function() {
+			setTimeout(function() {
+				jsonpCb && jsonpCb({
+					error: noResponseError
+				});
+			}, 10);
 		};
 
 		document.body.appendChild(jsonpScriptElt);
@@ -223,7 +245,7 @@
 	 *
 	 * var monetize = MonetizeJS(options);
 	 *
-	 * @param {Object} options optional set of default options.
+	 * @param {Object} options optional set of top-level options.
 	 *
 	 */
 	function MonetizeJS(options) {
