@@ -2,6 +2,18 @@
 
 MonetizeJS official client-side library.
 
+#### Import from CDN
+
+```html
+<script src="//cdn.monetizejs.com/api/js/latest/monetize.min.js"></script>
+```
+
+#### Install from bower
+
+```bash
+bower install monetizejs
+```
+
 ## MonetizeJS()
 
 Create and initialize a MonetizeJS object.
@@ -15,7 +27,7 @@ var monetize = MonetizeJS(options);
 
 #### Parameters:
 
-- **options**: *Object*, optional set of default options.
+- **options**: *Object*, optional set of top-level options.
 
 ## monetize.getTokenImmediate()
 
