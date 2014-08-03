@@ -124,15 +124,21 @@ gulp.task('deploy', function() {
 						return sum + buf.length;
 					}, 0);
 					Promise.all([
-						'js/latest',
-							'js/' + getVersion()
+						{
+							path: 'api/js/latest',
+							maxage: 86400
+						},
+						{
+							path: 'api/js/' + getVersion(),
+							maxage: 31536000
+						}
 					].map(function(dest) {
-							return putBuffer(Buffer.concat(bufs), path.join(dest, path.basename(file)), {
+							return putBuffer(Buffer.concat(bufs), path.join(dest.path, path.basename(file)), {
 								'x-amz-acl': 'public-read',
 								'Content-Length': contentLength,
 								'Content-Type': 'application/javascript',
 								'Content-Encoding': 'gzip',
-								'Cache-Control': dest == 'js/latest' ? 'max-age=86400' : 'max-age=31536000'
+								'Cache-Control': 'max-age=' + dest.maxage
 							});
 						}))
 						.then(resolve, reject);
