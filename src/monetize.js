@@ -9,7 +9,7 @@
  * <script src="//cdn.monetizejs.com/api/js/latest/monetize.min.js"></script>
  * ```
  *
- * #### Install from bower
+ * #### Or, install via bower
  *
  * ```bash
  * bower install monetizejs
@@ -302,7 +302,7 @@
 		});
 
 		/**
-		 * Attempt to get user's payments without a redirection.
+		 * Attempt to get user's payment object without a redirection.
 		 *
 		 * @example
 		 *
@@ -311,8 +311,8 @@
 		 *         console.error(err);
 		 *     }
 		 *     else if(token) {
-		 *         console.log(payments.currentCharge);
-		 *         console.log(payments.currentSubscription);
+		 *         console.log(payments.chargeOption);
+		 *         console.log(payments.subscriptionOption);
 		 *     }
 		 * });
 		 *
@@ -324,7 +324,7 @@
 		 *
 		 *      - **payments**: *Object*, the payment object.
 		 *
-		 *      > This object contains the fields `currentCharge` and `currentSubscription` that you have to validate.
+		 *      > This object contains the fields `chargeOption` and `subscriptionOption` that you have to validate.
 		 */
 		monetize.getPaymentsImmediate = paramSanitizer(function(options, cb) {
 			if(lastMsg && lastMsg.token && lastMsg.refreshDate > Date.now()) {
@@ -383,7 +383,7 @@
 		});
 
 		/**
-		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get user's payment object as a result.
 		 *
 		 * @example
 		 *
@@ -412,13 +412,53 @@
 			});
 		});
 
+		/**
+		 * Shortcut for `getTokenImmediate` and `getTokenInteractive`.
+		 *
+		 * @example
+		 *
+		 * monetize.getToken({
+		 *     immediate: true
+		 * }, cb);
+		 *
+		 * @param {Object} options optional set of options overriding the init options:
+		 *
+		 *      - **immediate**: *Boolean*, whether to call `getTokenImmediate` or `getTokenInteractive`.
+		 *
+		 * @param {Function} cb same as `getTokenImmediate` or `getTokenInteractive`.
+		 *
+		 */
+		monetize.getToken = paramSanitizer(function(options, cb) {
+			return (options.immeditate ? monetize.getTokenImmediate : monetize.getTokenInteractive)(options, cb);
+		});
+
+		/**
+		 * Shortcut for `getPaymentsImmediate` and `getPaymentsInteractive`.
+		 *
+		 * @example
+		 *
+		 * monetize.getPayments({
+		 *     immediate: true
+		 * }, cb);
+		 *
+		 * @param {Object} options optional set of options overriding the init options:
+		 *
+		 *      - **immediate**: *Boolean*, whether to call `getPaymentsImmediate` or `getPaymentsInteractive`.
+		 *
+		 * @param {Function} cb same as `getPaymentsImmediate` or `getPaymentsInteractive`.
+		 *
+		 */
+		monetize.getPayments = paramSanitizer(function(options, cb) {
+			return (options.immeditate ? monetize.getPaymentsImmediate : monetize.getPaymentsInteractive)(options, cb);
+		});
+
 		return monetize;
 	}
 
 	window.MonetizeJS = MonetizeJS;
 
 	if(typeof define === "function" && define.amd) {
-		define("MonetizeJS", [], function() {
+		define("monetizejs", [], function() {
 			return MonetizeJS;
 		});
 	}

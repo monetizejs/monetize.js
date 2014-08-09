@@ -8,7 +8,7 @@ MonetizeJS official client-side library.
 <script src="//cdn.monetizejs.com/api/js/latest/monetize.min.js"></script>
 ```
 
-#### Install from bower
+#### Or, install via bower
 
 ```bash
 bower install monetizejs
@@ -60,7 +60,7 @@ monetize.getTokenImmediate(options, function(err, token) {
 
 ## monetize.getPaymentsImmediate()
 
-Attempt to get user's payments without a redirection.
+Attempt to get user's payment object without a redirection.
 
 
 #### Example:
@@ -71,8 +71,8 @@ monetize.getPaymentsImmediate(options, function(err, payments) {
         console.error(err);
     }
     else if(token) {
-        console.log(payments.currentCharge);
-        console.log(payments.currentSubscription);
+        console.log(payments.chargeOption);
+        console.log(payments.subscriptionOption);
     }
 });
 ```
@@ -86,7 +86,7 @@ monetize.getPaymentsImmediate(options, function(err, payments) {
 
      - **payments**: *Object*, the payment object.
 
-     > This object contains the fields `currentCharge` and `currentSubscription` that you have to validate.
+     > This object contains the fields `chargeOption` and `subscriptionOption` that you have to validate.
 
 ## monetize.getTokenInteractive()
 
@@ -131,7 +131,7 @@ monetize.getTokenInteractive(options, function(err, token) {
 
 ## monetize.getPaymentsInteractive()
 
-Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+Perform a redirection to the MonetizeJS platform for login and/or payment and get user's payment object as a result.
 
 
 #### Example:
@@ -154,6 +154,48 @@ monetize.getTokenInteractive(options, function(err, token) {
 - **cb**: *Function*, same as `getPaymentsImmediate`. 
      > If the callback is provided, the redirection will be performed in a popup window.
      > If no callback is provided, a full page redirection will be performed and you will have to call `getPaymentsImmediate` once redirected back to your page.
+
+## monetize.getToken()
+
+Shortcut for `getTokenImmediate` and `getTokenInteractive`.
+
+
+#### Example:
+
+```js
+monetize.getToken({
+    immediate: true
+}, cb);
+```
+
+#### Parameters:
+
+- **options**: *Object*, optional set of options overriding the init options: 
+     - **immediate**: *Boolean*, whether to call `getTokenImmediate` or `getTokenInteractive`.
+
+
+- **cb**: *Function*, same as `getTokenImmediate` or `getTokenInteractive`.
+
+## monetize.getPayments()
+
+Shortcut for `getPaymentsImmediate` and `getPaymentsInteractive`.
+
+
+#### Example:
+
+```js
+monetize.getPayments({
+    immediate: true
+}, cb);
+```
+
+#### Parameters:
+
+- **options**: *Object*, optional set of options overriding the init options: 
+     - **immediate**: *Boolean*, whether to call `getPaymentsImmediate` or `getPaymentsInteractive`.
+
+
+- **cb**: *Function*, same as `getPaymentsImmediate` or `getPaymentsInteractive`.
 
 ## License
 

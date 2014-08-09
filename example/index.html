@@ -57,7 +57,7 @@
             alert('Error: ' + JSON.stringify(err));
         }
         else if(payments) {
-            alert('User is logged in!\n\nCurrent charge: ' + JSON.stringify(payments.currentCharge) + '\nCurrent subscription: ' + JSON.stringify(payments.currentSubscription));
+            alert('User is logged in!\n\nCharge option: ' + JSON.stringify(payments.chargeOption) + '\n\nSubscription option: ' + JSON.stringify(payments.subscriptionOption));
         }
     }
     function paymentsImmediate() {
