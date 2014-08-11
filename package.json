@@ -1,6 +1,6 @@
 {
   "name": "monetizejs",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "MonetizeJS official client-side library",
   "devDependencies": {
     "express": "^4.3.1",

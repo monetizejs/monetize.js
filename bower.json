@@ -1,7 +1,7 @@
 {
   "name": "monetizejs",
   "main": "src/monetize.js",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "homepage": "https://github.com/monetizejs/monetize.js",
   "authors": [
     "contact@monetizejs.com"
