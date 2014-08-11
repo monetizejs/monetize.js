@@ -219,8 +219,6 @@
 
 	function redirect(options) {
 		var qs = {
-			redirect: true,
-			response_type: 'token',
 			client_id: options.applicationID,
 			redirect_uri: options.redirectURL
 		};
