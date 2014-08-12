@@ -308,7 +308,7 @@
          *     if(err) {
 		 *         console.error(err);
 		 *     }
-		 *     else if(token) {
+		 *     else if(payments) {
 		 *         console.log(payments.chargeOption);
 		 *         console.log(payments.subscriptionOption);
 		 *     }
@@ -336,7 +336,7 @@
 		});
 
 		/**
-		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+		 * Perform a redirection to the MonetizeJS platform for sign in and/or payment and get an access token as a result.
 		 *
 		 * @example
 		 *
@@ -364,7 +364,7 @@
 		 *      - **pricingOptions**: *Array*, a list of pricing option aliases.
 		 *
 		 *      > Unless "summary" is enabled, the user interface will be limited to the specified pricing options.
-		 *      If no pricing option is specified or user already has one of the specified pricing options, only login will be performed.
+		 *      If no pricing option is specified or user already has one of the specified pricing options, only sign in will be performed.
 		 *
 		 * @param {Function} cb same as `getTokenImmediate`.
 		 *
@@ -381,16 +381,17 @@
 		});
 
 		/**
-		 * Perform a redirection to the MonetizeJS platform for login and/or payment and get user's payment object as a result.
+		 * Perform a redirection to the MonetizeJS platform for sign in and/or payment and get user's payment object as a result.
 		 *
 		 * @example
 		 *
-		 * monetize.getTokenInteractive(options, function(err, token) {
+		 * monetize.getPaymentsInteractive(options, function(err, payments) {
          *     if(err) {
 		 *         console.error(err);
 		 *     }
-		 *     else if(token) {
-		 *         console.log(token);
+		 *     else if(payments) {
+		 *         console.log(payments.chargeOption);
+		 *         console.log(payments.subscriptionOption);
 		 *     }
 		 * });
 		 *

@@ -70,7 +70,7 @@ monetize.getPaymentsImmediate(options, function(err, payments) {
     if(err) {
         console.error(err);
     }
-    else if(token) {
+    else if(payments) {
         console.log(payments.chargeOption);
         console.log(payments.subscriptionOption);
     }
@@ -90,7 +90,7 @@ monetize.getPaymentsImmediate(options, function(err, payments) {
 
 ## monetize.getTokenInteractive()
 
-Perform a redirection to the MonetizeJS platform for login and/or payment and get an access token as a result.
+Perform a redirection to the MonetizeJS platform for sign in and/or payment and get an access token as a result.
 
 
 #### Example:
@@ -122,7 +122,7 @@ monetize.getTokenInteractive(options, function(err, token) {
      - **pricingOptions**: *Array*, a list of pricing option aliases.
 
      > Unless "summary" is enabled, the user interface will be limited to the specified pricing options.
-     If no pricing option is specified or user already has one of the specified pricing options, only login will be performed.
+     If no pricing option is specified or user already has one of the specified pricing options, only sign in will be performed.
 
 
 - **cb**: *Function*, same as `getTokenImmediate`. 
@@ -131,18 +131,19 @@ monetize.getTokenInteractive(options, function(err, token) {
 
 ## monetize.getPaymentsInteractive()
 
-Perform a redirection to the MonetizeJS platform for login and/or payment and get user's payment object as a result.
+Perform a redirection to the MonetizeJS platform for sign in and/or payment and get user's payment object as a result.
 
 
 #### Example:
 
 ```js
-monetize.getTokenInteractive(options, function(err, token) {
+monetize.getPaymentsInteractive(options, function(err, payments) {
     if(err) {
         console.error(err);
     }
-    else if(token) {
-        console.log(token);
+    else if(payments) {
+        console.log(payments.chargeOption);
+        console.log(payments.subscriptionOption);
     }
 });
 ```
