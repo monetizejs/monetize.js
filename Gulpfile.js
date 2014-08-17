@@ -15,7 +15,7 @@ var path = require('path');
 var s3Client = knox.createClient({
 	key: process.env.AWS_ACCESS_KEY_ID,
 	secret: process.env.AWS_SECRET_KEY,
-	bucket: 'dock5-public'
+	bucket: 'cdn.monetizejs'
 });
 var putBuffer = Promise.promisify(s3Client.putBuffer, s3Client);
 
